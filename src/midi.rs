@@ -28,8 +28,8 @@ impl MidiFile {
         let mut chunks = Vec::new();
 
         while !chunker.done() {
-            let r#type: u32 = chunker.claim_as(4)?;
-            let length: u32 = chunker.claim_as(4)?;
+            let r#type: u32 = chunker.claim_as()?;
+            let length: u32 = chunker.claim_as()?;
             let data = chunker.claim(length)?;
             chunks.push(Chunk { r#type, data });
         }
@@ -47,9 +47,9 @@ impl MidiFile {
         }
 
         let mut header_chunker = Chunker::new(chunks[0].data);
-        let format = header_chunker.claim_as::<u16>(2)?.try_into()?;
+        let format = header_chunker.claim_as::<u16>()?.try_into()?;
 
-        if header_chunker.claim_as::<usize>(2)?
+        if header_chunker.claim_as::<u16>()? as usize
             != chunks
                 .iter()
                 .filter(|chunk| {
@@ -65,7 +65,11 @@ impl MidiFile {
             ));
         }
 
-        let division = header_chunker.claim_as::<i16>(2)?.try_into()?;
+        // TODO: This doesn't work, need to parse as i16 I think?
+        // let division = header_chunker.claim_as::<u16>()?.try_into()?;
+        let division = Division::Metrical {
+            ticks_per_quarter_note: 1,
+        };
 
         Ok(Self { format, division })
     }
@@ -220,11 +224,11 @@ impl<'a> Chunker<'a> {
 
     /// Advance the chunker cursor by the given number of bytes and return its eclipsed data as
     /// a single unsigned integer value.
-    fn claim_as<T>(&mut self, bytes: u32) -> Result<T, Error>
+    fn claim_as<T>(&mut self) -> Result<T, Error>
     where
         T: AddAssign<T> + From<u8> + ShlAssign<u8>,
     {
-        let slice = self.claim(bytes)?;
+        let slice = self.claim(std::mem::size_of::<T>() as u32)?;
         let mut value = T::from(0);
         for byte in slice {
             value <<= 8;
