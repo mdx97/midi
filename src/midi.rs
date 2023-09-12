@@ -38,6 +38,14 @@ impl MidiFile {
             return Err(Error::general("an empty file cannot be a valid MIDI file"));
         }
 
+        if chunks[0]
+            .type_variant()
+            .context("header chunk has an invalid type")?
+            != ChunkType::Header
+        {
+            return Err(Error::general("first chunk in file is not a header chunk"));
+        }
+
         let mut header_chunker = Chunker::new(chunks[0].data);
         let format = header_chunker.claim_as::<u16>(2)?.try_into()?;
 
