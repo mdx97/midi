@@ -65,11 +65,7 @@ impl MidiFile {
             ));
         }
 
-        // TODO: This doesn't work, need to parse as i16 I think?
-        // let division = header_chunker.claim_as::<u16>()?.try_into()?;
-        let division = Division::Metrical {
-            ticks_per_quarter_note: 1,
-        };
+        let division = header_chunker.claim_as::<i16>()?.try_into()?;
 
         Ok(Self { format, division })
     }
